@@ -17,6 +17,10 @@ const nextConfig = {
       },
     ];
   },
+  // Allow all hosts for Replit proxy
+  experimental: {
+    allowedOrigins: ['*'],
+  },
 }
 
 module.exports = nextConfig
