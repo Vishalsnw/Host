@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, Star, Utensils, Phone, ExternalLink, Heart, Users } from 'lucide-react';
+import { MapPin, Star, Utensils, Phone, ExternalLink, Heart, Users, Home, Building } from 'lucide-react';
 import Link from 'next/link';
 import { PGListing } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -14,16 +14,30 @@ export default function ListingCard({ listing }: ListingCardProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const genderColors = {
+  const genderColors: Record<string, string> = {
     girls: 'bg-pink-100 text-pink-700',
     boys: 'bg-blue-100 text-blue-700',
-    coed: 'bg-purple-100 text-purple-700'
+    coed: 'bg-purple-100 text-purple-700',
+    family: 'bg-green-100 text-green-700'
   };
 
-  const genderLabels = {
+  const genderLabels: Record<string, string> = {
     girls: 'Girls Only',
     boys: 'Boys Only',
-    coed: 'Co-ed'
+    coed: 'Co-ed',
+    family: 'Family'
+  };
+
+  const typeColors: Record<string, string> = {
+    pg: 'bg-blue-50 text-blue-600',
+    hostel: 'bg-purple-50 text-purple-600',
+    flat: 'bg-orange-50 text-orange-600'
+  };
+
+  const typeLabels: Record<string, string> = {
+    pg: 'PG',
+    hostel: 'Hostel',
+    flat: 'Flat'
   };
 
   return (
@@ -39,7 +53,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
-              <span className="text-primary-600 font-medium">{listing.name.charAt(0)}</span>
+              <span className="text-primary-600 font-medium text-2xl">{listing.name.charAt(0)}</span>
             </div>
           )}
         </div>
@@ -51,9 +65,12 @@ export default function ListingCard({ listing }: ListingCardProps) {
           <Heart className={cn("w-5 h-5", isSaved ? "fill-red-500 text-red-500" : "text-gray-600")} />
         </button>
 
-        <div className="absolute bottom-3 left-3 flex gap-2">
-          <span className={cn("px-2 py-1 rounded-lg text-xs font-medium", genderColors[listing.gender])}>
-            {genderLabels[listing.gender]}
+        <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap">
+          <span className={cn("px-2 py-1 rounded-lg text-xs font-medium", typeColors[listing.type] || 'bg-gray-100 text-gray-700')}>
+            {typeLabels[listing.type] || listing.type}
+          </span>
+          <span className={cn("px-2 py-1 rounded-lg text-xs font-medium", genderColors[listing.gender] || 'bg-gray-100 text-gray-700')}>
+            {genderLabels[listing.gender] || listing.gender}
           </span>
           {listing.foodIncluded && (
             <span className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium flex items-center gap-1">
@@ -80,14 +97,24 @@ export default function ListingCard({ listing }: ListingCardProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 mb-3">
-          <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs text-gray-600 capitalize">
-            {listing.type}
-          </span>
-          <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs text-gray-600 capitalize flex items-center gap-1">
-            <Users className="w-3 h-3" />
-            {listing.occupancy}
-          </span>
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {listing.bhk && (
+            <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs text-gray-600 flex items-center gap-1">
+              <Home className="w-3 h-3" />
+              {listing.bhk}
+            </span>
+          )}
+          {listing.occupancy && (
+            <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs text-gray-600 capitalize flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              {listing.occupancy}
+            </span>
+          )}
+          {listing.furnished && (
+            <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs text-gray-600 capitalize">
+              {listing.furnished === 'fully' ? 'Fully Furnished' : listing.furnished === 'semi' ? 'Semi Furnished' : 'Unfurnished'}
+            </span>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-1 mb-4">

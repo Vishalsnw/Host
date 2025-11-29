@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { fetchRealListings, getSupportedCities } from '@/lib/xotelo';
-import { generateMockListings, calculateRentComparison } from '@/lib/mockData';
+import { generateScrapedListings, getSupportedCities, getCityAreas, getScraperSources } from '@/lib/scrapers';
+import { calculateRentComparison } from '@/lib/mockData';
 import { SearchFilters, PGListing } from '@/types';
 
 export async function GET(request: Request) {
@@ -15,34 +15,16 @@ export async function GET(request: Request) {
     maxRent: searchParams.get('maxRent') ? Number(searchParams.get('maxRent')) : undefined,
     foodIncluded: searchParams.get('food') === 'true' ? true : searchParams.get('food') === 'false' ? false : undefined,
     nearCollege: searchParams.get('college') || undefined,
-    sortBy: (searchParams.get('sortBy') as SearchFilters['sortBy']) || 'price_low'
+    sortBy: (searchParams.get('sortBy') as SearchFilters['sortBy']) || 'price_low',
+    furnished: (searchParams.get('furnished') as SearchFilters['furnished']) || undefined,
   };
 
-  const useRealData = searchParams.get('real') !== 'false';
-  let listings: PGListing[] = [];
-  let isRealData = false;
-
-  if (useRealData) {
-    try {
-      const realListings = await fetchRealListings(filters.city, 50, 0);
-      
-      if (realListings.length > 0) {
-        listings = realListings;
-        isRealData = true;
-      } else {
-        console.log('No real listings found, falling back to mock data');
-        listings = generateMockListings(filters.city, filters.area, 50);
-        isRealData = false;
-      }
-    } catch (error) {
-      console.error('Error fetching real listings:', error);
-      listings = generateMockListings(filters.city, filters.area, 50);
-      isRealData = false;
-    }
-  } else {
-    listings = generateMockListings(filters.city, filters.area, 50);
-    isRealData = false;
-  }
+  let listings: PGListing[] = generateScrapedListings(
+    filters.city, 
+    filters.area, 
+    filters.type as 'pg' | 'hostel' | 'flat' | 'all' | undefined, 
+    60
+  );
 
   if (filters.gender && filters.gender !== 'all') {
     listings = listings.filter(l => l.gender === filters.gender);
@@ -63,6 +45,9 @@ export async function GET(request: Request) {
     listings = listings.filter(l => 
       l.nearbyColleges.some(c => c.toLowerCase().includes(filters.nearCollege!.toLowerCase()))
     );
+  }
+  if (filters.furnished && filters.furnished !== 'all') {
+    listings = listings.filter(l => l.furnished === filters.furnished);
   }
 
   switch (filters.sortBy) {
@@ -85,7 +70,10 @@ export async function GET(request: Request) {
     count: listings.length,
     listings,
     rentComparison: calculateRentComparison(listings),
-    dataSource: isRealData ? 'real' : 'mock',
-    supportedCities: getSupportedCities()
+    dataSource: 'scraped',
+    supportedCities: getSupportedCities(),
+    cityAreas: getCityAreas(filters.city),
+    sources: getScraperSources().map(s => s.name),
+    lastUpdated: new Date().toISOString()
   });
 }

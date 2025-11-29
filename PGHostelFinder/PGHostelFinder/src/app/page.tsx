@@ -6,13 +6,13 @@ import SearchBar from '@/components/SearchBar';
 import CityCard from '@/components/CityCard';
 import QuickFilters from '@/components/QuickFilter';
 import { cities } from '@/lib/cities';
-import { Sparkles, TrendingUp, Shield, Clock } from 'lucide-react';
+import { Sparkles, TrendingUp, Shield, Building2 } from 'lucide-react';
 
 const features = [
   {
     icon: Sparkles,
-    title: 'Verified Listings',
-    description: 'All PGs verified for authenticity'
+    title: 'Scraped Listings',
+    description: 'Data from multiple property sites'
   },
   {
     icon: TrendingUp,
@@ -22,12 +22,12 @@ const features = [
   {
     icon: Shield,
     title: 'Safe & Secure',
-    description: 'Gender-specific accommodations'
+    description: 'Verified accommodations'
   },
   {
-    icon: Clock,
-    title: 'Real-time Updates',
-    description: 'Latest availability status'
+    icon: Building2,
+    title: 'PGs, Hostels & Flats',
+    description: 'All types of accommodations'
   }
 ];
 
@@ -47,10 +47,10 @@ export default function Home() {
       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white px-4 pt-6 pb-10 -mt-px">
         <div className="max-w-lg mx-auto">
           <h1 className="text-2xl font-bold mb-2">
-            Find Your Perfect PG & Hostel
+            Find PGs, Hostels & Flats
           </h1>
           <p className="text-primary-100 mb-6">
-            Discover verified accommodations across major Indian cities
+            Discover student accommodations & rented flats across major Indian cities
           </p>
           <SearchBar showFilters={false} />
         </div>

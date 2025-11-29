@@ -48,19 +48,19 @@ export default function FilterModal({
         <div className="p-4 space-y-6">
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">Property Type</h3>
-            <div className="flex gap-2">
-              {['all', 'pg', 'hostel'].map(type => (
+            <div className="flex gap-2 flex-wrap">
+              {['all', 'pg', 'hostel', 'flat'].map(type => (
                 <button
                   key={type}
                   onClick={() => setFilters({ ...filters, type: type as SearchFilters['type'] })}
                   className={cn(
-                    "flex-1 py-2 px-4 rounded-lg border font-medium transition-colors",
+                    "py-2 px-4 rounded-lg border font-medium transition-colors",
                     filters.type === type || (!filters.type && type === 'all')
                       ? "bg-primary-600 text-white border-primary-600"
                       : "bg-white text-gray-600 border-gray-200 hover:border-primary-300"
                   )}
                 >
-                  {type === 'all' ? 'All' : type === 'pg' ? 'PG' : 'Hostel'}
+                  {type === 'all' ? 'All' : type === 'pg' ? 'PG' : type === 'hostel' ? 'Hostel' : 'Flat'}
                 </button>
               ))}
             </div>
@@ -73,7 +73,8 @@ export default function FilterModal({
                 { value: 'all', label: 'All' },
                 { value: 'girls', label: 'Girls Only' },
                 { value: 'boys', label: 'Boys Only' },
-                { value: 'coed', label: 'Co-ed' }
+                { value: 'coed', label: 'Co-ed' },
+                { value: 'family', label: 'Family' }
               ].map(({ value, label }) => (
                 <button
                   key={value}
@@ -90,6 +91,33 @@ export default function FilterModal({
               ))}
             </div>
           </div>
+
+          {filters.type === 'flat' && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Furnished Status</h3>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: 'all', label: 'All' },
+                  { value: 'fully', label: 'Fully Furnished' },
+                  { value: 'semi', label: 'Semi Furnished' },
+                  { value: 'unfurnished', label: 'Unfurnished' }
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setFilters({ ...filters, furnished: value as SearchFilters['furnished'] })}
+                    className={cn(
+                      "py-2 px-4 rounded-lg border font-medium transition-colors",
+                      filters.furnished === value || (!filters.furnished && value === 'all')
+                        ? "bg-primary-600 text-white border-primary-600"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-primary-300"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">Food Included</h3>
@@ -117,7 +145,7 @@ export default function FilterModal({
 
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">
-              Rent Range: ₹{filters.minRent || 0} - ₹{filters.maxRent || 25000}
+              Rent Range: ₹{filters.minRent || 0} - ₹{filters.maxRent || 50000}
             </h3>
             <div className="flex gap-3">
               <input
@@ -153,7 +181,7 @@ export default function FilterModal({
             </div>
           )}
 
-          {colleges.length > 0 && (
+          {colleges.length > 0 && filters.type !== 'flat' && (
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-3">Near College</h3>
               <select

@@ -6,8 +6,9 @@ import {
   Utensils, 
   GraduationCap, 
   Building, 
+  Building2,
   IndianRupee,
-  Sparkles 
+  Home
 } from 'lucide-react';
 
 const quickFilters = [
@@ -34,6 +35,12 @@ const quickFilters = [
     label: "Hostels",
     href: "/search?type=hostel",
     color: "bg-purple-50 text-purple-600 border-purple-200"
+  },
+  {
+    icon: Home,
+    label: "Flats",
+    href: "/search?type=flat",
+    color: "bg-orange-50 text-orange-600 border-orange-200"
   },
   {
     icon: IndianRupee,
