@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateScrapedListings, getSupportedCities, getCityAreas, getScraperSources } from '@/lib/scrapers';
+import { scrapeRealListings, generateScrapedListings, getSupportedCities, getCityAreas, getScraperSources } from '@/lib/scrapers';
 import { calculateRentComparison } from '@/lib/mockData';
 import { SearchFilters, PGListing } from '@/types';
 
@@ -19,12 +19,42 @@ export async function GET(request: Request) {
     furnished: (searchParams.get('furnished') as SearchFilters['furnished']) || undefined,
   };
 
-  let listings: PGListing[] = generateScrapedListings(
-    filters.city, 
-    filters.area, 
-    filters.type as 'pg' | 'hostel' | 'flat' | 'all' | undefined, 
-    60
-  );
+  const useReal = searchParams.get('real') !== 'false';
+  
+  let listings: PGListing[] = [];
+  let isRealData = false;
+  let dataSources: string[] = [];
+
+  if (useReal) {
+    try {
+      const scrapeResult = await scrapeRealListings(
+        filters.city,
+        filters.type as 'pg' | 'hostel' | 'flat' | 'all' | undefined
+      );
+      listings = scrapeResult.listings;
+      isRealData = scrapeResult.isRealData;
+      dataSources = scrapeResult.sources;
+    } catch (error) {
+      console.error('Error during scraping:', error);
+      listings = generateScrapedListings(
+        filters.city,
+        filters.area,
+        filters.type as 'pg' | 'hostel' | 'flat' | 'all' | undefined,
+        60
+      );
+      isRealData = false;
+      dataSources = ['Sample Data'];
+    }
+  } else {
+    listings = generateScrapedListings(
+      filters.city,
+      filters.area,
+      filters.type as 'pg' | 'hostel' | 'flat' | 'all' | undefined,
+      60
+    );
+    isRealData = false;
+    dataSources = ['Sample Data'];
+  }
 
   if (filters.gender && filters.gender !== 'all') {
     listings = listings.filter(l => l.gender === filters.gender);
@@ -70,10 +100,12 @@ export async function GET(request: Request) {
     count: listings.length,
     listings,
     rentComparison: calculateRentComparison(listings),
-    dataSource: 'scraped',
+    dataSource: isRealData ? 'real' : 'sample',
+    isRealData,
+    sources: dataSources,
     supportedCities: getSupportedCities(),
     cityAreas: getCityAreas(filters.city),
-    sources: getScraperSources().map(s => s.name),
+    scraperSources: getScraperSources().map(s => s.name),
     lastUpdated: new Date().toISOString()
   });
 }

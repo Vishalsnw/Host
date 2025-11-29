@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateScrapedListings, getScraperSources } from '@/lib/scrapers';
+import { scrapeRealListings, getScraperSources } from '@/lib/scrapers';
 
 const SCRAPE_SOURCES = getScraperSources();
 
@@ -14,23 +14,22 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    const scrapedListings = generateScrapedListings(
-      city, 
-      area, 
-      type as 'pg' | 'hostel' | 'flat' | 'all',
-      40
+    const result = await scrapeRealListings(
+      city,
+      type as 'pg' | 'hostel' | 'flat' | 'all'
     );
 
     return NextResponse.json({
       success: true,
-      message: `Found ${scrapedListings.length} ${type === 'all' ? 'listings' : type + 's'} for ${area || 'all areas'} in ${city}`,
-      listings: scrapedListings,
-      sources: SCRAPE_SOURCES.map(s => s.name),
+      message: `Found ${result.listings.length} ${type === 'all' ? 'listings' : type + 's'} for ${area || 'all areas'} in ${city}`,
+      listings: result.listings,
+      isRealData: result.isRealData,
+      sources: result.sources,
       lastUpdated: new Date().toISOString(),
       propertyTypes: {
-        pg: scrapedListings.filter(l => l.type === 'pg').length,
-        hostel: scrapedListings.filter(l => l.type === 'hostel').length,
-        flat: scrapedListings.filter(l => l.type === 'flat').length,
+        pg: result.listings.filter(l => l.type === 'pg').length,
+        hostel: result.listings.filter(l => l.type === 'hostel').length,
+        flat: result.listings.filter(l => l.type === 'flat').length,
       }
     });
   } catch (error) {
@@ -45,22 +44,22 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const city = searchParams.get('city') || 'delhi';
-  const area = searchParams.get('area') || undefined;
   const type = (searchParams.get('type') || 'all') as 'pg' | 'hostel' | 'flat' | 'all';
 
   try {
-    const scrapedListings = generateScrapedListings(city, area, type, 40);
+    const result = await scrapeRealListings(city, type);
 
     return NextResponse.json({
       success: true,
-      message: `Found ${scrapedListings.length} ${type === 'all' ? 'listings' : type + 's'} for ${area || 'all areas'} in ${city}`,
-      listings: scrapedListings,
-      sources: SCRAPE_SOURCES.map(s => s.name),
+      message: `Found ${result.listings.length} ${type === 'all' ? 'listings' : type + 's'} in ${city}`,
+      listings: result.listings,
+      isRealData: result.isRealData,
+      sources: result.sources,
       lastUpdated: new Date().toISOString(),
       propertyTypes: {
-        pg: scrapedListings.filter(l => l.type === 'pg').length,
-        hostel: scrapedListings.filter(l => l.type === 'hostel').length,
-        flat: scrapedListings.filter(l => l.type === 'flat').length,
+        pg: result.listings.filter(l => l.type === 'pg').length,
+        hostel: result.listings.filter(l => l.type === 'hostel').length,
+        flat: result.listings.filter(l => l.type === 'flat').length,
       }
     });
   } catch (error) {

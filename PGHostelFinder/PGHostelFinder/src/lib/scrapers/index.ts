@@ -1,5 +1,8 @@
 import { PGListing, ScrapedResult } from '@/types';
 import { generateId } from '../utils';
+import { scrapeNoBroker } from './nobroker';
+import { scrapeMagicBricks } from './magicbricks';
+import { scrape99Acres } from './99acres';
 
 export interface ScraperConfig {
   name: string;
@@ -11,9 +14,9 @@ export const SCRAPER_SOURCES: ScraperConfig[] = [
   { name: 'NoBroker', baseUrl: 'https://www.nobroker.in', enabled: true },
   { name: 'MagicBricks', baseUrl: 'https://www.magicbricks.com', enabled: true },
   { name: '99acres', baseUrl: 'https://www.99acres.com', enabled: true },
-  { name: 'Housing.com', baseUrl: 'https://housing.com', enabled: true },
-  { name: 'NestAway', baseUrl: 'https://www.nestaway.com', enabled: true },
-  { name: 'Zolo', baseUrl: 'https://www.zolostays.com', enabled: true },
+  { name: 'Housing.com', baseUrl: 'https://housing.com', enabled: false },
+  { name: 'NestAway', baseUrl: 'https://www.nestaway.com', enabled: false },
+  { name: 'Zolo', baseUrl: 'https://www.zolostays.com', enabled: false },
 ];
 
 const CITY_AREAS: Record<string, string[]> = {
@@ -36,26 +39,21 @@ const PG_NAMES = [
   'Sunrise PG', 'Student Haven', 'Campus View PG', 'Green Valley',
   'Elite Stay', 'Home Away', 'Scholar Den', 'City Light PG',
   'Royal Residency', 'Dream Stay', 'Comfort Zone', 'Study Nest',
-  'Urban Living', 'Prime Location', 'Safe Haven PG', 'Student Palace',
-  'Metro Living', 'Central Heights', 'Park View PG', 'Galaxy PG'
 ];
 
 const HOSTEL_NAMES = [
   'Youth Hostel', 'Backpackers Inn', 'Student Hostel', 'Budget Stay',
   'Traveler Hostel', 'City Hostel', 'Campus Hostel', 'Economy Inn',
-  'Dormitory Plus', 'Shared Living', 'Community Hostel', 'Smart Hostel'
 ];
 
 const FLAT_NAMES = [
   'Modern Apartment', 'City View Flat', 'Premium Flat', 'Budget Apartment',
   'Studio Apartment', 'Bachelor Pad', 'Cozy Flat', 'Urban Apartment',
-  'Metro Flat', 'Park Side Flat', 'Garden View', 'Sky High Flat'
 ];
 
 const OWNER_NAMES = [
   'Sharma Ji', 'Patel Bhai', 'Mrs. Gupta', 'Mr. Singh', 'Reddy Sir',
   'Mrs. Iyer', 'Khan Sahab', 'Mrs. Desai', 'Mr. Verma', 'Mrs. Nair',
-  'Mr. Kapoor', 'Mrs. Bansal', 'Mr. Malhotra', 'Mrs. Rao', 'Mr. Joshi'
 ];
 
 const AMENITIES = {
@@ -68,7 +66,6 @@ const SAMPLE_IMAGES = {
   pg: [
     'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&h=300&fit=crop',
     'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop',
   ],
   hostel: [
     'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&h=300&fit=crop',
@@ -77,7 +74,6 @@ const SAMPLE_IMAGES = {
   flat: [
     'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop',
     'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop',
-    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop',
   ]
 };
 
@@ -92,6 +88,61 @@ function generatePhone(): string {
 
 function capitalizeFirst(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+export async function scrapeRealListings(
+  city: string,
+  type?: 'pg' | 'hostel' | 'flat' | 'all'
+): Promise<{ listings: PGListing[]; isRealData: boolean; sources: string[] }> {
+  const allListings: PGListing[] = [];
+  const successfulSources: string[] = [];
+  
+  console.log(`[Scraper] Starting real scrape for ${city}, type: ${type || 'all'}`);
+  
+  try {
+    const scraperPromises: Promise<{ source: string; listings: PGListing[] }>[] = [];
+    
+    if (type === 'pg' || type === 'hostel' || type === 'all' || !type) {
+      scraperPromises.push(
+        scrapeNoBroker(city, 'pg').then(listings => ({ source: 'NoBroker', listings }))
+      );
+    }
+    
+    if (type === 'flat' || type === 'all' || !type) {
+      scraperPromises.push(
+        scrapeMagicBricks(city, 'flat').then(listings => ({ source: 'MagicBricks', listings })),
+        scrape99Acres(city, 'flat').then(listings => ({ source: '99acres', listings }))
+      );
+    }
+    
+    const results = await Promise.allSettled(scraperPromises);
+    
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.listings.length > 0) {
+        allListings.push(...result.value.listings);
+        successfulSources.push(result.value.source);
+      }
+    }
+    
+    console.log(`[Scraper] Total real listings found: ${allListings.length} from sources: ${successfulSources.join(', ')}`);
+    
+    if (allListings.length > 0) {
+      return {
+        listings: allListings,
+        isRealData: true,
+        sources: successfulSources
+      };
+    }
+  } catch (error) {
+    console.error('[Scraper] Error during real scraping:', error);
+  }
+  
+  console.log('[Scraper] Falling back to generated sample data');
+  return {
+    listings: generateScrapedListings(city, undefined, type, 30),
+    isRealData: false,
+    sources: ['Sample Data']
+  };
 }
 
 export function generateScrapedListings(
@@ -115,7 +166,7 @@ export function generateScrapedListings(
   for (let i = 0; i < count; i++) {
     const selectedArea = selectedAreas[Math.floor(Math.random() * selectedAreas.length)];
     const selectedType = types[Math.floor(Math.random() * types.length)];
-    const source = SCRAPER_SOURCES[Math.floor(Math.random() * SCRAPER_SOURCES.length)];
+    const source = SCRAPER_SOURCES[Math.floor(Math.random() * 3)];
     
     let gender: 'girls' | 'boys' | 'coed' | 'family';
     let name: string;

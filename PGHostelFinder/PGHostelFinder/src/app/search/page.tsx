@@ -17,7 +17,8 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const [listings, setListings] = useState<PGListing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dataSource, setDataSource] = useState<'real' | 'mock'>('mock');
+  const [isRealData, setIsRealData] = useState(false);
+  const [dataSources, setDataSources] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     city: searchParams.get('city') || 'delhi',
@@ -51,7 +52,8 @@ function SearchContent() {
 
         if (data.success && data.listings) {
           setListings(data.listings);
-          setDataSource(data.dataSource || 'mock');
+          setIsRealData(data.isRealData || false);
+          setDataSources(data.sources || ['Sample Data']);
           addListings(data.listings);
         }
       } catch (error) {
@@ -91,21 +93,21 @@ function SearchContent() {
       </div>
 
       <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm text-gray-600">
-            {loading ? 'Searching...' : `${listings.length} results found`}
+            {loading ? 'Scraping listings...' : `${listings.length} results found`}
           </p>
           {!loading && (
             <span className={cn(
               "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-              dataSource === 'real' 
+              isRealData 
                 ? "bg-green-100 text-green-700" 
                 : "bg-amber-100 text-amber-700"
             )}>
-              {dataSource === 'real' ? (
+              {isRealData ? (
                 <>
                   <Globe className="w-3 h-3" />
-                  Live Data
+                  Live: {dataSources.join(', ')}
                 </>
               ) : (
                 <>
@@ -134,7 +136,8 @@ function SearchContent() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-10 h-10 text-primary-600 animate-spin mb-4" />
-            <p className="text-gray-500">Finding the best PGs for you...</p>
+            <p className="text-gray-500">Scraping real listings from property sites...</p>
+            <p className="text-gray-400 text-sm mt-2">This may take a few seconds</p>
           </div>
         ) : listings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
