@@ -1,9 +1,5 @@
 import { PGListing, RentComparison } from '@/types';
-import { generateScrapedListings, getSupportedCities, getCityAreas, getCityColleges, getScraperSources } from './scrapers';
-
-export function generateMockListings(city: string, area?: string, count: number = 20): PGListing[] {
-  return generateScrapedListings(city, area, 'all', count);
-}
+import { getSupportedCities, getCityAreas, getCityColleges, getScraperSources } from './scrapers';
 
 export function calculateRentComparison(listings: PGListing[]): RentComparison[] {
   const areaMap = new Map<string, number[]>();

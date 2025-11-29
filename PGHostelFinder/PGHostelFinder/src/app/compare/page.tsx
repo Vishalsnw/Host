@@ -3,27 +3,46 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
-import { generateMockListings, calculateRentComparison } from '@/lib/mockData';
 import { cities } from '@/lib/cities';
 import { RentComparison } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { BarChart3, TrendingUp, TrendingDown, MapPin, Building2 } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, MapPin, Building2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ComparePage() {
   const [selectedCity, setSelectedCity] = useState('delhi');
   const [comparisons, setComparisons] = useState<RentComparison[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRealData, setIsRealData] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      const listings = generateMockListings(selectedCity, undefined, 100);
-      const data = calculateRentComparison(listings);
-      data.sort((a, b) => a.avgRent - b.avgRent);
-      setComparisons(data);
-      setLoading(false);
-    }, 300);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`/api/listings?city=${selectedCity}`);
+        const data = await response.json();
+        
+        if (data.success && data.rentComparison) {
+          const sortedComparisons = [...data.rentComparison].sort((a: RentComparison, b: RentComparison) => a.avgRent - b.avgRent);
+          setComparisons(sortedComparisons);
+          setIsRealData(data.isRealData);
+        } else {
+          setComparisons([]);
+          setError(data.error || 'No data available. Please try again later.');
+        }
+      } catch (err) {
+        console.error('Error fetching comparison data:', err);
+        setError('Failed to load comparison data. Please try again.');
+        setComparisons([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   }, [selectedCity]);
 
   const overallAvg = comparisons.length > 0 
@@ -66,7 +85,29 @@ export default function ComparePage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mb-4" />
-            <p className="text-gray-500">Loading rent data...</p>
+            <p className="text-gray-500">Fetching real rent data...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+              <AlertCircle className="w-8 h-8 text-amber-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">Unable to Load Data</h3>
+            <p className="text-gray-500 text-sm max-w-xs">{error}</p>
+            <button
+              onClick={() => setSelectedCity(selectedCity)}
+              className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : comparisons.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <BarChart3 className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">No Data Available</h3>
+            <p className="text-gray-500 text-sm max-w-xs">No listings found for this city. Please try another city.</p>
           </div>
         ) : (
           <>

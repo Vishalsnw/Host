@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { scrapeRealListings, generateScrapedListings, getSupportedCities, getCityAreas, getScraperSources } from '@/lib/scrapers';
-import { calculateRentComparison } from '@/lib/mockData';
+import { scrapeRealListings, getSupportedCities, getCityAreas, getScraperSources } from '@/lib/scrapers';
+import { calculateRentComparison } from '@/lib/rentUtils';
 import { SearchFilters, PGListing } from '@/types';
 
 export async function GET(request: Request) {
@@ -19,42 +19,20 @@ export async function GET(request: Request) {
     furnished: (searchParams.get('furnished') as SearchFilters['furnished']) || undefined,
   };
 
-  const useReal = searchParams.get('real') !== 'false';
-  
   let listings: PGListing[] = [];
   let isRealData = false;
   let dataSources: string[] = [];
+  let errorMessage: string | undefined;
 
-  if (useReal) {
-    try {
-      const scrapeResult = await scrapeRealListings(
-        filters.city,
-        filters.type as 'pg' | 'hostel' | 'flat' | 'all' | undefined
-      );
-      listings = scrapeResult.listings;
-      isRealData = scrapeResult.isRealData;
-      dataSources = scrapeResult.sources;
-    } catch (error) {
-      console.error('Error during scraping:', error);
-      listings = generateScrapedListings(
-        filters.city,
-        filters.area,
-        filters.type as 'pg' | 'hostel' | 'flat' | 'all' | undefined,
-        60
-      );
-      isRealData = false;
-      dataSources = ['Sample Data'];
-    }
-  } else {
-    listings = generateScrapedListings(
-      filters.city,
-      filters.area,
-      filters.type as 'pg' | 'hostel' | 'flat' | 'all' | undefined,
-      60
-    );
-    isRealData = false;
-    dataSources = ['Sample Data'];
-  }
+  const scrapeResult = await scrapeRealListings(
+    filters.city,
+    filters.type as 'pg' | 'hostel' | 'flat' | 'all' | undefined
+  );
+  
+  listings = scrapeResult.listings;
+  isRealData = scrapeResult.isRealData;
+  dataSources = scrapeResult.sources;
+  errorMessage = scrapeResult.error;
 
   if (filters.gender && filters.gender !== 'all') {
     listings = listings.filter(l => l.gender === filters.gender);
@@ -96,13 +74,14 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
-    success: true,
+    success: listings.length > 0,
     count: listings.length,
     listings,
-    rentComparison: calculateRentComparison(listings),
-    dataSource: isRealData ? 'real' : 'sample',
+    rentComparison: listings.length > 0 ? calculateRentComparison(listings) : [],
+    dataSource: isRealData ? 'real' : 'none',
     isRealData,
     sources: dataSources,
+    error: errorMessage,
     supportedCities: getSupportedCities(),
     cityAreas: getCityAreas(filters.city),
     scraperSources: getScraperSources().map(s => s.name),
